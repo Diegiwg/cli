@@ -2,4 +2,4 @@ go 1.21.6
 
 use .
 
-use ./example
+use ./examples/simple-calc

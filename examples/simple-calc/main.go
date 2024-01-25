@@ -55,10 +55,11 @@ func main() {
 	app.EnableDumpCommand()
 
 	app.AddCommand(&cli.Command{
-		Name: "calc",
-		Desc: "Simple calculator",
-		Help: "This is a simple calculator to add, subtract, multiply and divide numbers",
-		Exec: calc,
+		Name:  "calc",
+		Desc:  "Simple Calculator",
+		Help:  "This is a simple calculator to add, subtract, multiply and divide numbers.\n\tPass the numbers as arguments and the operation as a flag.",
+		Usage: "<a> <b> --op <operation: + - / * >",
+		Exec:  calc,
 	})
 
 	err := app.Run()

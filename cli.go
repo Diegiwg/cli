@@ -14,10 +14,11 @@ type Context struct {
 }
 
 type Command struct {
-	Name string
-	Desc string
-	Help string
-	Exec func(ctx *Context) error
+	Name  string
+	Desc  string
+	Help  string
+	Usage string
+	Exec  func(ctx *Context) error
 }
 
 type App struct {
@@ -33,19 +34,19 @@ func defaultHelpCommand(ctx *Context) error {
 	if len(ctx.Args) != 0 {
 		cmd, exists := ctx.App.Commands[ctx.Args[0]]
 		if exists {
-			println("Command: " + ctx.Args[0])
-			println("Usage: " + ctx.App.Program + " " + ctx.Args[0] + " [arguments] [flags]")
-			println("Description:", cmd.Help)
+			println("Command:", "\n\t"+ctx.Args[0])
+			println("Description:", "\n\t"+cmd.Help)
+			println("Usage:", "\n\t"+ctx.App.Program, ctx.Args[0], cmd.Usage)
 			return nil
 		}
 
-		println("Command not found: "+ctx.Args[0], "\n")
+		println("Command not found:", ctx.Args[0], "\n")
 	}
 
-	println("Usage: " + ctx.App.Program + " <command> [arguments] [flags]")
+	println("Usage:", "\n\t"+ctx.App.Program, "<command> [arguments] [flags]")
 	println("Commands:")
 	for k, v := range ctx.App.Commands {
-		println("\t", k, ":", v.Desc)
+		println("\t"+k+":", v.Desc)
 	}
 
 	return nil
@@ -67,10 +68,11 @@ func defaultDumpCommand(ctx *Context) error {
 
 func (app *App) EnableDumpCommand() {
 	app.AddCommand(&Command{
-		Name: "dump",
-		Desc: "Dump Tool",
-		Help: "Dump the current context",
-		Exec: defaultDumpCommand,
+		Name:  "dump",
+		Desc:  "Dump Tool",
+		Help:  "Dump the current context",
+		Usage: "",
+		Exec:  defaultDumpCommand,
 	})
 }
 
