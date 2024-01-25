@@ -159,6 +159,14 @@ func isFlag(arg string) bool {
 		strings.HasPrefix(arg, "--") && utf8.RuneCountInString(arg) >= 3
 }
 
+func removeFlagPrefix(arg string) string {
+	if strings.HasPrefix(arg, "--") {
+		return arg[2:]
+	}
+
+	return arg[1:]
+}
+
 func (app *App) ParseArgsAndFlags(ctx *Context) {
 	args := []string{}
 	flags := make(map[string]string)
@@ -175,7 +183,9 @@ func (app *App) ParseArgsAndFlags(ctx *Context) {
 		}
 
 		parts := strings.Split(arg, "=")
-		if len(parts) == 2 {
+		parts[0] = removeFlagPrefix(parts[0])
+
+		if len(parts) == 2 && parts[1] != "" {
 			flags[parts[0]] = parts[1]
 			continue
 		}
