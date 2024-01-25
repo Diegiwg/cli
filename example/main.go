@@ -1,23 +1,20 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/Diegiwg/cli"
 )
-
-func helpCommand(ctx *cli.Context) error {
-	println("Usage: " + ctx.App.Program + " <command> [arguments]")
-	return nil
-}
 
 func main() {
 	app := cli.NewApp()
 
-	// app.SetDefaultRoutine(helpCommand)
-	app.AddCommand(&cli.Command{
-		Name: "help",
-		Desc: "Show this Help Message",
-		Exec: helpCommand,
+	app.SetDefaultCommand(func(ctx *cli.Context) error {
+		println(strings.Join(ctx.Args, " "))
+		return nil
 	})
+
+	app.EnableDumpCommand()
 
 	err := app.Run()
 	if err != nil {

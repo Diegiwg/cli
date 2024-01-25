@@ -3,12 +3,14 @@ package cli
 import (
 	"errors"
 	"os"
+	"strings"
+	"unicode/utf8"
 )
 
 type Context struct {
 	App   *App
-	Args  []string
 	Flags map[string]string
+	Args  []string
 }
 
 type Command struct {
@@ -22,26 +24,78 @@ type App struct {
 	Program         string
 	Args            []string
 	ArgsPtr         int
-	DefaultRoutine  func(ctx *Context) error
+	DefaultCommand  func(ctx *Context) error
 	SelectedCommand *Command
 	Commands        map[string]*Command
+}
+
+func defaultHelpCommand(ctx *Context) error {
+	if len(ctx.Args) != 0 {
+		cmd, exists := ctx.App.Commands[ctx.Args[0]]
+		if exists {
+			println("Command: " + ctx.Args[0])
+			println("Usage: " + ctx.App.Program + " " + ctx.Args[0] + " [arguments] [flags]")
+			println("Description:", cmd.Help)
+			return nil
+		}
+
+		println("Command not found: "+ctx.Args[0], "\n")
+	}
+
+	println("Usage: " + ctx.App.Program + " <command> [arguments] [flags]")
+	println("Commands:")
+	for k, v := range ctx.App.Commands {
+		println("\t", k, ":", v.Desc)
+	}
+
+	return nil
+}
+
+func defaultDumpCommand(ctx *Context) error {
+	println("Dumping...")
+	println("Program:", ctx.App.Program)
+	println("Args (", len(ctx.Args), ")")
+	for k, v := range ctx.Args {
+		println("\t", k, "=", v)
+	}
+	println("Flags (", len(ctx.Flags), ")")
+	for k, v := range ctx.Flags {
+		println("\t", k, "=", v)
+	}
+	return nil
+}
+
+func (app *App) EnableDumpCommand() {
+	app.AddCommand(&Command{
+		Name: "dump",
+		Desc: "Dump Tool",
+		Help: "Dump the current context",
+		Exec: defaultDumpCommand,
+	})
 }
 
 func NewApp() *App {
 	return &App{
 		Program:         os.Args[0],
 		Args:            os.Args[1:],
-		ArgsPtr:         0,
-		DefaultRoutine:  nil,
+		DefaultCommand:  defaultHelpCommand,
 		SelectedCommand: nil,
 		Commands:        make(map[string]*Command),
 	}
 }
 
 func (app *App) Run() error {
+	// Add the Help command
+	app.AddCommand(&Command{
+		Name: "help",
+		Desc: "Help Command",
+		Help: "Show this help message",
+		Exec: defaultHelpCommand,
+	})
+
 	// Parse the command
 	err := app.ParseCommand()
-	if err != nil && app.DefaultRoutine == nil {
+	if err != nil && app.DefaultCommand == nil {
 		return err
 	}
 
@@ -49,22 +103,23 @@ func (app *App) Run() error {
 	ctx := &Context{
 		App: app,
 	}
+	app.ParseArgsAndFlags(ctx)
 
 	// Check if the SelectedCommand is Not nil
 	if app.SelectedCommand != nil {
 		return app.SelectedCommand.Exec(ctx)
 	}
 
-	// Check if the DefaultRoutine is Not nil
-	if app.DefaultRoutine != nil {
-		return app.DefaultRoutine(ctx)
+	// Check if the DefaultCommand is Not nil
+	if app.DefaultCommand != nil {
+		return app.DefaultCommand(ctx)
 	}
 
-	return errors.New("unknown error")
+	return errors.New("no command provided")
 }
 
-func (app *App) SetDefaultRoutine(routine func(ctx *Context) error) {
-	app.DefaultRoutine = routine
+func (app *App) SetDefaultCommand(routine func(ctx *Context) error) {
+	app.DefaultCommand = routine
 }
 
 func (app *App) AddCommand(cmd *Command) error {
@@ -94,7 +149,46 @@ func (app *App) ParseCommand() error {
 	}
 
 	// Set the SelectedCommand
-	app.ArgsPtr++
+	app.Args = app.Args[1:]
 	app.SelectedCommand = cmd
 	return nil
+}
+
+func isFlag(arg string) bool {
+	return strings.HasPrefix(arg, "-") && utf8.RuneCountInString(arg) >= 2 ||
+		strings.HasPrefix(arg, "--") && utf8.RuneCountInString(arg) >= 3
+}
+
+func (app *App) ParseArgsAndFlags(ctx *Context) {
+	args := []string{}
+	flags := make(map[string]string)
+
+	for i := 0; i < len(app.Args); i++ {
+		arg := app.Args[i]
+		if arg == "" {
+			continue
+		}
+
+		if !isFlag(arg) {
+			args = append(args, arg)
+			continue
+		}
+
+		parts := strings.Split(arg, "=")
+		if len(parts) == 2 {
+			flags[parts[0]] = parts[1]
+			continue
+		}
+
+		if i+1 < len(app.Args) && !isFlag(app.Args[i+1]) {
+			flags[parts[0]] = app.Args[i+1]
+			i++
+			continue
+		}
+
+		flags[parts[0]] = ""
+	}
+
+	ctx.Args = args
+	ctx.Flags = flags
 }
