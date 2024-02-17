@@ -72,7 +72,7 @@ func main() {
  app := cli.NewApp()
 
  // Adicionar o comando de cálculo ao aplicativo
- app.AddCommand(cli.Command{
+ app.AddCommand(&cli.Command{
   Name:  "calc",
   Desc:  "Calculadora Simples",
   Help:  "Esta é uma calculadora simples para somar, subtrair, multiplicar e dividir números.\n\tPasse os números como argumentos e a operação como uma flag.",
